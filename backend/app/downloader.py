@@ -385,6 +385,10 @@ class AnimeDownloader:
         )
         return f"{series_name} - S{season_code}E{episode_code} - {safe_episode_title}.mp4"
 
+    def generate_film_filename(self, anime_title: str) -> str:
+        """Generate a Jellyfin-friendly movie filename: 'Movie Name.mp4'."""
+        return f"{self.generate_anime_folder_name(anime_title)}.mp4"
+
     def generate_merged_filename(
         self,
         anime_title: str,

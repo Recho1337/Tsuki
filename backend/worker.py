@@ -146,8 +146,15 @@ def run_download(job_id: int):
         type_folder = "films" if media_type == "film" else "tvshows"
         base_dir = os.path.join(download_folder, type_folder)
         anime_dir = os.path.join(base_dir, downloader.generate_anime_folder_name(anime_title))
-        season_dir = os.path.join(anime_dir, downloader.generate_season_folder_name(season))
-        os.makedirs(season_dir, exist_ok=True)
+
+        if media_type == "film":
+            # Films: anime_dir/Film Name.mp4 (no Season subfolder)
+            output_dir = anime_dir
+        else:
+            # TV: anime_dir/Season XX/
+            output_dir = os.path.join(anime_dir, downloader.generate_season_folder_name(season))
+
+        os.makedirs(output_dir, exist_ok=True)
 
         _save_metadata(anime_dir, {
             "title": anime_title,
@@ -188,8 +195,11 @@ def run_download(job_id: int):
                 logs = _log(job_id, "ERROR", f"Could not resolve video data for episode {ep_id}", logs)
                 continue
 
-            filename = downloader.generate_episode_filename(anime_title, season, ep_id, ep.get("title", ""))
-            filepath = os.path.join(season_dir, filename)
+            if media_type == "film":
+                filename = downloader.generate_film_filename(anime_title)
+            else:
+                filename = downloader.generate_episode_filename(anime_title, season, ep_id, ep.get("title", ""))
+            filepath = os.path.join(output_dir, filename)
 
             if downloader.download_episode(video_data, filepath, ep_id):
                 rel = os.path.relpath(filepath, download_folder)
