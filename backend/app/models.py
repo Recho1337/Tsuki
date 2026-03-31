@@ -36,6 +36,14 @@ class DownloadStartRequest(BaseModel):
     image_url: str = ""
 
 
+class QueueReorderRequest(BaseModel):
+    job_ids: list[int]
+
+
+class QueueMoveRequest(BaseModel):
+    position: int
+
+
 # --- Internal State ---
 
 class DownloadJob:

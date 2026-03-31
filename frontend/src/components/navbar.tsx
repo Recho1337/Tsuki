@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Queue", href: "/queue" },
   { label: "Download", href: "/download" },
   { label: "Search", href: "/search" },
   { label: "Library", href: "/library" },
@@ -44,7 +45,7 @@ export function Navbar() {
               key={item.href}
               href={item.href}
               className={`rounded-md px-3 py-1.5 text-sm transition-colors duration-150 ${
-                pathname === item.href
+                pathname === item.href || pathname.startsWith(item.href + "/")
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:text-foreground"
               }`}
@@ -58,7 +59,7 @@ export function Navbar() {
           {/* Active downloads indicator */}
           {activeJobs.length > 0 && (
             <Link
-              href="/dashboard"
+              href="/queue"
               className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
             >
               <span className="relative flex h-2 w-2">

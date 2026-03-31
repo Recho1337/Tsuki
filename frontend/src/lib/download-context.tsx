@@ -52,9 +52,23 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [token, refresh, hasActive]);
 
-  const activeJobs = jobs.filter(
-    (j) => !["completed", "failed"].includes(j.status)
-  );
+  const statusPriority: Record<string, number> = {
+    downloading: 0,
+    merging: 1,
+    fetching_episodes: 2,
+    fetching_info: 3,
+    initializing: 4,
+  };
+
+  const activeJobs = jobs
+    .filter((j) => !["completed", "failed"].includes(j.status))
+    .sort((a, b) => {
+      const pa = statusPriority[a.status] ?? 5;
+      const pb = statusPriority[b.status] ?? 5;
+      if (pa !== pb) return pa - pb;
+      // If same status, the one with higher progress is more active
+      return b.progress - a.progress;
+    });
   const finishedJobs = jobs.filter((j) =>
     ["completed", "failed"].includes(j.status)
   );

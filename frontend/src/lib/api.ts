@@ -127,6 +127,23 @@ export const api = {
     apiFetch<Record<string, { name: string; status: string; detail: string }>>(
       "/api/health/services"
     ),
+
+  getQueueOrder: () => apiFetch<JobStatus[]>("/api/download/queue/order"),
+
+  reorderQueue: (jobIds: number[]) =>
+    apiFetch<{ message: string; order: number[] }>("/api/download/queue/reorder", {
+      method: "POST",
+      body: JSON.stringify({ job_ids: jobIds }),
+    }),
+
+  moveJobInQueue: (jobId: number, position: number) =>
+    apiFetch<{ message: string; order: number[] }>(
+      `/api/download/queue/move/${jobId}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ position }),
+      }
+    ),
 };
 
 export interface JobStatus {

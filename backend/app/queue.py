@@ -4,6 +4,7 @@ Redis-backed job queue.
 The backend pushes job IDs here; the worker pops them.
 """
 import redis
+from typing import List
 from app.config import settings
 
 QUEUE_KEY = "animekai:download_jobs"
@@ -27,3 +28,19 @@ def dequeue_job(timeout: int = 5) -> int | None:
         _, job_id_str = result
         return int(job_id_str)
     return None
+
+
+def get_queue_order() -> List[int]:
+    """Return the current ordered list of job IDs in the queue."""
+    r = get_redis()
+    return [int(x) for x in r.lrange(QUEUE_KEY, 0, -1)]
+
+
+def set_queue_order(job_ids: List[int]):
+    """Replace the queue with the given ordered list of job IDs."""
+    r = get_redis()
+    pipe = r.pipeline()
+    pipe.delete(QUEUE_KEY)
+    if job_ids:
+        pipe.rpush(QUEUE_KEY, *[str(jid) for jid in job_ids])
+    pipe.execute()

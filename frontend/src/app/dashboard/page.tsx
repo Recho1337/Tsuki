@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useDownloads } from "@/lib/download-context";
 import { api, type JobStatus } from "@/lib/api";
 import {
@@ -111,6 +112,7 @@ export default function DashboardPage() {
             Now Downloading
           </h2>
           <Card className="border-border border-l-2 border-l-primary overflow-hidden">
+            <Link href={`/queue/${leadJob.job_id}`}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">
@@ -122,6 +124,7 @@ export default function DashboardPage() {
                 <CardDescription>Season {leadJob.season}</CardDescription>
               ) : null}
             </CardHeader>
+            </Link>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-3">
                 <Progress value={leadJob.progress} className="flex-1" />
@@ -174,7 +177,8 @@ export default function DashboardPage() {
           </h2>
           <Card className="border-border divide-y divide-border">
             {visibleQueued.map((job) => (
-              <div key={job.job_id} className="flex items-center gap-4 px-4 py-3">
+              <Link key={job.job_id} href={`/queue/${job.job_id}`}>
+              <div className="flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
                     {job.anime_title || job.anime_url}
@@ -192,6 +196,7 @@ export default function DashboardPage() {
                   <Badge variant={statusColor(job.status)} className="text-xs">{job.status}</Badge>
                 </div>
               </div>
+              </Link>
             ))}
             {hiddenQueuedCount > 0 && (
               <div className="px-4 py-2">
@@ -215,14 +220,12 @@ export default function DashboardPage() {
             {visibleHistory.map((job) => (
               <div
                 key={job.job_id}
-                className={`cursor-pointer transition-colors hover:bg-muted/30 ${
+                className={`transition-colors hover:bg-muted/30 ${
                   job.status === "failed" ? "border-l-2 border-l-destructive" : ""
                 }`}
-                onClick={() =>
-                  setExpanded(expanded === job.job_id ? null : job.job_id)
-                }
               >
-                <div className="flex items-center gap-4 px-4 py-3">
+                <Link href={`/queue/${job.job_id}`}>
+                <div className="flex items-center gap-4 px-4 py-3 cursor-pointer">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
                       {job.anime_title || job.anime_url}
@@ -263,6 +266,7 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 </div>
+                </Link>
                 {expanded === job.job_id && (
                   <div className="px-4 pb-3 space-y-2">
                     {job.error && (

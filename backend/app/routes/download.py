@@ -20,8 +20,8 @@ from app.database import (
     update_job,
 )
 from app.downloader import AnimeDownloader
-from app.models import AnimeInfoRequest, DownloadStartRequest
-from app.queue import enqueue_job
+from app.models import AnimeInfoRequest, DownloadStartRequest, QueueReorderRequest, QueueMoveRequest
+from app.queue import enqueue_job, get_queue_order, set_queue_order
 
 router = APIRouter(
     prefix="/api/download",
@@ -110,28 +110,23 @@ async def start_download(body: DownloadStartRequest):
 
 @router.post("/retry/{job_id}")
 async def retry_download(job_id: int):
-    """Manually retry a failed job."""
+    """Manually retry a failed job. Preserves already-downloaded files on disk."""
     job = await get_job(job_id)
     if not job:
         return {"error": "Job not found"}
     if job["status"] != "failed":
         return {"error": "Only failed jobs can be retried"}
-    if job.get("retry_count", 0) >= job.get("max_retries", 3):
-        return {"error": "Maximum retries exhausted"}
 
-    new_count = job.get("retry_count", 0) + 1
     await update_job(
         job_id,
         status="initializing",
         progress=0,
-        completed_episodes=0,
         current_episode=None,
         error=None,
         end_time=None,
-        retry_count=new_count,
+        retry_count=0,
         start_time=datetime.now().isoformat(),
         logs=[],
-        downloaded_files=[],
     )
     enqueue_job(job_id)
     return {"job_id": job_id, "message": "Retry queued"}
@@ -182,3 +177,39 @@ async def clear_download_job(job_id: int):
     if deleted:
         return {"message": "Job cleared"}
     return {"error": "Job not found or still active"}
+
+
+@router.get("/queue/order")
+async def get_current_queue_order():
+    """Return the current Redis queue order with job metadata."""
+    order = get_queue_order()
+    jobs = []
+    for jid in order:
+        job = await get_job(jid)
+        if job:
+            jobs.append(job)
+    return jobs
+
+
+@router.post("/queue/reorder")
+async def reorder_queue(body: QueueReorderRequest):
+    """Replace the queue order with the given list of job IDs."""
+    current = set(get_queue_order())
+    new_order = body.job_ids
+    if set(new_order) != current:
+        return {"error": "Reorder must contain exactly the same job IDs as the current queue"}
+    set_queue_order(new_order)
+    return {"message": "Queue reordered", "order": new_order}
+
+
+@router.post("/queue/move/{job_id}")
+async def move_job_in_queue(job_id: int, body: QueueMoveRequest):
+    """Move a job to a specific position in the queue (0 = next up)."""
+    current = get_queue_order()
+    if job_id not in current:
+        return {"error": "Job not in queue"}
+    current.remove(job_id)
+    pos = max(0, min(body.position, len(current)))
+    current.insert(pos, job_id)
+    set_queue_order(current)
+    return {"message": f"Job {job_id} moved to position {pos}", "order": current}

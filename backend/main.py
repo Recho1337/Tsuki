@@ -10,14 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.routes import auth, download, library, search
-from app.routes.download import resume_interrupted_jobs
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs(settings.download_folder, exist_ok=True)
     await init_db()
-    await resume_interrupted_jobs()
     yield
 
 
