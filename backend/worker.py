@@ -170,6 +170,21 @@ def run_download(job_id: int):
         prefer_type = config.get("prefer_type", "Soft Sub")
         prefer_server = config.get("prefer_server", "Server 1")
 
+        # Real-time progress: blends per-episode completion with intra-episode yt-dlp %
+        _last_reported = [0]
+
+        def _on_ytdlp_progress(pct: float):
+            """Called by downloader with yt-dlp download % (0-100)."""
+            base = (completed / total) * 100
+            per_ep = 100.0 / total
+            blended = int(base + (pct / 100.0) * per_ep)
+            blended = max(0, min(blended, 99))  # never hit 100 until truly done
+            if blended - _last_reported[0] >= 2:  # throttle: update every 2%
+                _last_reported[0] = blended
+                _update(job_id, progress=blended)
+
+        downloader.progress_callback = _on_ytdlp_progress
+
         for idx, ep in enumerate(selected, 1):
             if _shutdown:
                 raise Exception("Worker shutting down — job interrupted")

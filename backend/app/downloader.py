@@ -403,6 +403,29 @@ class AnimeDownloader:
         last_code = self.format_episode_number(last_ep_id)
         return f"{series_name} - S{season_code}E{first_code}-E{last_code} - Episodes {first_code}-{last_code}.mp4"
 
+    def _run_ytdlp(self, cmd: list, label: str = "") -> bool:
+        """Run a yt-dlp command, parsing stdout for progress updates."""
+        try:
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+            )
+            for line in proc.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+                # yt-dlp progress lines look like: [download]  45.2% of ~500MiB ...
+                m = re.search(r"\[download\]\s+([\d.]+)%", line)
+                if m and self.progress_callback:
+                    try:
+                        self.progress_callback(float(m.group(1)))
+                    except Exception:
+                        pass
+            proc.wait()
+            return proc.returncode == 0
+        except Exception as e:
+            self.log("ERROR", f"yt-dlp process error: {e}")
+            return False
+
     def download_with_ytdlp(self, url: str, output_file: str, episode_label: str, subtitles: List[Dict] = None) -> bool:
         """Download with yt-dlp, optionally embedding subtitles"""
         try:
@@ -430,8 +453,7 @@ class AnimeDownloader:
                 cmd_copy[cmd_copy.index("-o") + 1] = temp_video
 
                 # Download video
-                result = subprocess.run(cmd_copy, capture_output=True, text=True)
-                if result.returncode != 0 or not os.path.exists(temp_video):
+                if not self._run_ytdlp(cmd_copy, episode_label) or not os.path.exists(temp_video):
                     self.log("ERROR", "Video download failed")
                     return False
 
@@ -487,8 +509,9 @@ class AnimeDownloader:
                     shutil.move(temp_video, output_file)
                     return True
             else:
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                return result.returncode == 0 and os.path.exists(output_file)
+                if not self._run_ytdlp(cmd, episode_label) or not os.path.exists(output_file):
+                    return False
+                return True
 
         except Exception as e:
             self.log("ERROR", f"yt-dlp error: {e}")
