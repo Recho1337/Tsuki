@@ -1,0 +1,15 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.9
+passlib[bcrypt]==1.7.4
+requests==2.31.0
+beautifulsoup4==4.12.2
+cloudscraper==1.2.71
+tqdm==4.66.1
+yt-dlp==2024.12.23
+pydantic==2.9.0
+pydantic-settings==2.5.0
+aiosqlite==0.20.0
+asyncpg==0.30.0
+redis==5.2.1

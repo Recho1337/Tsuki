@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tsuki-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tsuki}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tsuki}
+      POSTGRES_DB: ${POSTGRES_DB:-tsuki}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tsuki}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: tsuki-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  backend:
+    build:
+      context: ./backend
+    container_name: tsuki-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    environment:
+      - DOWNLOAD_FOLDER=/app/downloads
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-tsuki}:${POSTGRES_PASSWORD:-tsuki}@postgres:5432/${POSTGRES_DB:-tsuki}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - ANIME_USER=${ANIME_USER:-admin}
+      - ANIME_PASS=${ANIME_PASS:-admin}
+    volumes:
+      - ${DOWNLOAD_PATH:-./downloads}:/app/downloads
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  worker:
+    build:
+      context: ./backend
+    container_name: tsuki-worker
+    restart: unless-stopped
+    command: ["python", "worker.py"]
+    environment:
+      - DOWNLOAD_FOLDER=/app/downloads
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-tsuki}:${POSTGRES_PASSWORD:-tsuki}@postgres:5432/${POSTGRES_DB:-tsuki}
+    volumes:
+      - ${DOWNLOAD_PATH:-./downloads}:/app/downloads
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_API_URL=
+    container_name: tsuki-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:
+  redis_data:
