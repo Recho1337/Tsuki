@@ -108,6 +108,16 @@ export const api = {
     return `${API_BASE}/api/library/stream/${relativePath}${token ? `?token=${token}` : ""}`;
   },
 
+  deleteFile: (relativePath: string) =>
+    apiFetch<{ message: string }>(`/api/library/file/${relativePath}`, {
+      method: "DELETE",
+    }),
+
+  deleteAnime: (animePath: string) =>
+    apiFetch<{ message: string }>(`/api/library/anime/${animePath}`, {
+      method: "DELETE",
+    }),
+
   getServicesHealth: () =>
     apiFetch<Record<string, { name: string; status: string; detail: string }>>(
       "/api/health/services"

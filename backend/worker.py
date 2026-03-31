@@ -277,31 +277,44 @@ def run_download(job_id: int):
 
 # ---------- main loop ----------
 
-def _heartbeat(r, status: str = "idle"):
-    """Write a heartbeat key so the backend knows we're alive."""
-    r.set("animekai:worker:heartbeat", json.dumps({
-        "ts": datetime.now().isoformat(),
-        "status": status,
-        "pid": os.getpid(),
-    }), ex=15)  # expires in 15s — if no update, consider dead
+_worker_status = "idle"
+
+def _heartbeat_loop(r):
+    """Background thread that sends heartbeats every 5 seconds."""
+    while not _shutdown:
+        r.set("animekai:worker:heartbeat", json.dumps({
+            "ts": datetime.now().isoformat(),
+            "status": _worker_status,
+            "pid": os.getpid(),
+        }), ex=15)
+        for _ in range(50):  # sleep 5s in 0.1s increments so shutdown is responsive
+            if _shutdown:
+                break
+            import time; time.sleep(0.1)
 
 
 def main():
+    global _worker_status
     print("[worker] Starting Tsuki download worker...")
     os.makedirs(settings.download_folder, exist_ok=True)
     _sync(init_db())
     r = get_redis()
     print(f"[worker] Download folder: {settings.download_folder}")
     print(f"[worker] Redis: {settings.redis_url}")
+
+    import threading
+    hb_thread = threading.Thread(target=_heartbeat_loop, args=(r,), daemon=True)
+    hb_thread.start()
+
     print("[worker] Waiting for jobs...")
 
     while not _shutdown:
-        _heartbeat(r, "idle")
+        _worker_status = "idle"
         job_id = dequeue_job(timeout=5)
         if job_id is None:
             continue
         print(f"[worker] Picked up job {job_id}")
-        _heartbeat(r, f"processing:{job_id}")
+        _worker_status = f"processing:{job_id}"
         run_download(job_id)
         print(f"[worker] Finished job {job_id}")
 

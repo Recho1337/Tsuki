@@ -494,6 +494,23 @@ class AnimeDownloader:
             self.log("ERROR", f"yt-dlp error: {e}")
             return False
 
+    def _cleanup_temp_files(self, output_file: str):
+        """Remove leftover temp/partial files that yt-dlp or ffmpeg may leave behind."""
+        import glob
+        base = os.path.splitext(output_file)[0]
+        patterns = [
+            f"{base}_temp.*",
+            f"{base}.temp.*",
+            f"{base}*.part",
+            f"{base}_sub*.vtt",
+        ]
+        for pattern in patterns:
+            for f in glob.glob(pattern):
+                try:
+                    os.remove(f)
+                except Exception:
+                    pass
+
     def download_episode(self, video_data: Dict[str, Any], output_file: str, episode_label: str) -> bool:
         """Download a single episode"""
         url = video_data["video_url"]
@@ -506,11 +523,13 @@ class AnimeDownloader:
                 self.log("INFO", f"Retry {attempt}/{self.config['max_retries']} for episode {episode_label}")
             
             if self.download_with_ytdlp(url, output_file, episode_label, subtitles):
+                self._cleanup_temp_files(output_file)
                 self.log("INFO", f"✅ Successfully downloaded episode {episode_label}")
                 return True
             
             time.sleep(self.config["sleep_between"])
         
+        self._cleanup_temp_files(output_file)
         return False
 
     def merge_videos(self, file_list: List[str], anime_title: str, season_num: int, 

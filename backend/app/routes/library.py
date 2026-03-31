@@ -3,6 +3,7 @@ Library API router
 """
 import json
 import os
+import shutil
 from datetime import datetime
 from typing import Optional
 
@@ -48,14 +49,25 @@ def _read_metadata(anime_path: str) -> dict:
     return {}
 
 
+def _is_temp_file(filename: str) -> bool:
+    """Detect yt-dlp temp/partial files: _temp.mp4, .temp.mp4, .part, .temp etc."""
+    lower = filename.lower()
+    if lower.endswith(".temp") or lower.endswith(".part"):
+        return True
+    # yt-dlp patterns: file_temp.mp4, file.temp.mp4
+    name_no_ext = os.path.splitext(lower)[0]
+    if name_no_ext.endswith("_temp") or name_no_ext.endswith(".temp"):
+        return True
+    return False
+
+
 def collect_media_files(base_path: str) -> list[dict]:
     media_files = []
     for root, _, files in os.walk(base_path):
         for file in files:
             if not _is_media_file(file):
                 continue
-            # Skip temp/partial files
-            if file.endswith(".temp") or file.endswith(".part"):
+            if _is_temp_file(file):
                 continue
             file_path = os.path.join(root, file)
             if not os.path.isfile(file_path):
@@ -243,3 +255,43 @@ def download_file(relative_path: str, token: Optional[str] = Query(None)):
         return FileResponse(filepath, filename=os.path.basename(filepath), media_type="video/mp4")
 
     return {"error": f"File not found: {relative_path}"}
+
+
+@router.delete("/file/{relative_path:path}")
+def delete_file(relative_path: str, _user: str = Depends(get_current_user)):
+    """Delete a single media file."""
+    filepath = os.path.abspath(os.path.join(settings.download_folder, relative_path))
+    download_root = os.path.abspath(settings.download_folder)
+
+    if not filepath.startswith(download_root + os.sep):
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    if not os.path.isfile(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    os.remove(filepath)
+
+    # Clean up empty parent directories up to the download root
+    parent = os.path.dirname(filepath)
+    while parent != download_root and os.path.isdir(parent):
+        if not os.listdir(parent):
+            os.rmdir(parent)
+            parent = os.path.dirname(parent)
+        else:
+            break
+
+    return {"message": f"Deleted {relative_path}"}
+
+
+@router.delete("/anime/{anime_path:path}")
+def delete_anime(anime_path: str, _user: str = Depends(get_current_user)):
+    """Delete an entire anime directory and all its contents."""
+    full_path = os.path.abspath(os.path.join(settings.download_folder, anime_path))
+    download_root = os.path.abspath(settings.download_folder)
+
+    if not full_path.startswith(download_root + os.sep):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    if not os.path.isdir(full_path):
+        raise HTTPException(status_code=404, detail="Directory not found")
+
+    shutil.rmtree(full_path)
+    return {"message": f"Deleted {anime_path}"}

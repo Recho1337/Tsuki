@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type AnimeFile } from "@/lib/api";
 import {
@@ -41,6 +41,8 @@ export default function AnimeDetailPage() {
   }>({});
   const [loading, setLoading] = useState(true);
   const [playingFile, setPlayingFile] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     api
@@ -69,6 +71,29 @@ export default function AnimeDetailPage() {
 
   const getDownloadUrl = (file: AnimeFile) =>
     api.getFileDownloadUrl(`${animePath}/${file.relative_path}`);
+
+  const handleDeleteFile = async (file: AnimeFile) => {
+    if (!confirm(`Delete "${file.name}"?`)) return;
+    setDeleting(file.relative_path);
+    try {
+      await api.deleteFile(`${animePath}/${file.relative_path}`);
+      setFiles((prev) => prev.filter((f) => f.relative_path !== file.relative_path));
+    } catch {
+      alert("Failed to delete file");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!confirm(`Delete "${animeName}" and all its files? This cannot be undone.`)) return;
+    try {
+      await api.deleteAnime(animePath);
+      router.push("/library");
+    } catch {
+      alert("Failed to delete");
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in">
@@ -108,16 +133,29 @@ export default function AnimeDetailPage() {
             {files.length} file{files.length !== 1 && "s"} · {formatSize(totalSizeMb)}
             {metadata.season ? ` · Season ${metadata.season}` : ""}
           </p>
-          {metadata.url && (
-            <a
-              href={metadata.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-2 text-xs text-primary hover:underline"
+          <div className="flex items-center gap-3 mt-3">
+            {metadata.url && (
+              <a
+                href={metadata.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline"
+              >
+                View source page →
+              </a>
+            )}
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteAll}
+              className="text-xs"
             >
-              View source page →
-            </a>
-          )}
+              <svg className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete All
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -225,6 +263,16 @@ export default function AnimeDetailPage() {
                           </svg>
                           Download
                         </a>
+                        <button
+                          onClick={() => handleDeleteFile(file)}
+                          disabled={deleting === file.relative_path}
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          {deleting === file.relative_path ? "..." : "Delete"}
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
