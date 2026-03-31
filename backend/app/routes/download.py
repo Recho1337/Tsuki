@@ -46,14 +46,12 @@ async def resume_interrupted_jobs():
                 job["job_id"],
                 status="initializing",
                 progress=0,
-                completed_episodes=0,
                 current_episode=None,
                 error=None,
                 end_time=None,
                 retry_count=new_count,
                 start_time=datetime.now().isoformat(),
                 logs=[],
-                downloaded_files=[],
             )
             enqueue_job(job["job_id"])
         else:

@@ -187,7 +187,11 @@ def run_download(job_id: int):
 
         for idx, ep in enumerate(selected, 1):
             if _shutdown:
-                raise Exception("Worker shutting down — job interrupted")
+                logs = _log(job_id, "WARN", "Worker shutting down — saving progress for resume", logs)
+                _update(job_id, status="downloading", downloaded_files=downloaded_files,
+                        completed_episodes=completed, progress=int((completed / total) * 100))
+                print(f"[worker] Job {job_id} interrupted by shutdown, will resume on restart")
+                return  # exit cleanly without marking failed
 
             ep_id = ep["id"]
             _update(job_id, current_episode=ep_id)
@@ -215,6 +219,17 @@ def run_download(job_id: int):
             else:
                 filename = downloader.generate_episode_filename(anime_title, season, ep_id, ep.get("title", ""))
             filepath = os.path.join(output_dir, filename)
+
+            # Skip episodes already downloaded on disk (resume support)
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                rel = os.path.relpath(filepath, download_folder)
+                if rel not in downloaded_files:
+                    downloaded_files.append(rel)
+                completed += 1
+                progress = int((completed / total) * 100)
+                _update(job_id, completed_episodes=completed, progress=progress, downloaded_files=downloaded_files)
+                logs = _log(job_id, "INFO", f"Episode {ep_id} already exists, skipping", logs)
+                continue
 
             if downloader.download_episode(video_data, filepath, ep_id):
                 rel = os.path.relpath(filepath, download_folder)

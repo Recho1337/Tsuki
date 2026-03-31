@@ -60,6 +60,7 @@ services:
       context: ./backend
     container_name: tsuki-worker
     restart: unless-stopped
+    stop_grace_period: 10m
     command: ["python", "worker.py"]
     environment:
       - DOWNLOAD_FOLDER=/app/downloads
