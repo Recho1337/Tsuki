@@ -317,6 +317,11 @@ def main():
     print(f"[worker] Download folder: {settings.download_folder}")
     print(f"[worker] Redis: {settings.redis_url}")
 
+    # Re-queue any jobs that were interrupted by a previous shutdown
+    from app.routes.download import resume_interrupted_jobs
+    _sync(resume_interrupted_jobs())
+    print("[worker] Recovered any interrupted jobs")
+
     import threading
     hb_thread = threading.Thread(target=_heartbeat_loop, args=(r,), daemon=True)
     hb_thread.start()

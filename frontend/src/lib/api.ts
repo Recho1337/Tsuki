@@ -118,6 +118,11 @@ export const api = {
       method: "DELETE",
     }),
 
+  recoverStuckJobs: () =>
+    apiFetch<{ recovered: number; message: string }>("/api/download/recover", {
+      method: "POST",
+    }),
+
   getServicesHealth: () =>
     apiFetch<Record<string, { name: string; status: string; detail: string }>>(
       "/api/health/services"

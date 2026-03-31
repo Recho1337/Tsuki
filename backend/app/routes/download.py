@@ -139,6 +139,32 @@ async def retry_download(job_id: int):
     return {"job_id": job_id, "message": "Retry queued"}
 
 
+@router.post("/recover")
+async def recover_stuck_jobs():
+    """Manually re-queue any jobs stuck in non-terminal states."""
+    interrupted = await get_interrupted_jobs()
+    recovered = 0
+    for job in interrupted:
+        retry_count = job.get("retry_count", 0)
+        new_count = retry_count + 1
+        await update_job(
+            job["job_id"],
+            status="initializing",
+            progress=0,
+            completed_episodes=0,
+            current_episode=None,
+            error=None,
+            end_time=None,
+            retry_count=new_count,
+            start_time=datetime.now().isoformat(),
+            logs=[],
+            downloaded_files=[],
+        )
+        enqueue_job(job["job_id"])
+        recovered += 1
+    return {"recovered": recovered, "message": f"Re-queued {recovered} stuck job(s)"}
+
+
 @router.get("/status/{job_id}")
 async def get_download_status(job_id: int):
     job = await get_job(job_id)

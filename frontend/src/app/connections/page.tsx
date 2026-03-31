@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 
 interface ServiceInfo {
@@ -82,11 +83,30 @@ export default function ConnectionsPage() {
               : `${onlineCount} of ${totalCount} online`}
           </p>
         </div>
-        {lastChecked && (
-          <span className="text-xs text-muted-foreground tabular-nums">
-            Updated {lastChecked.toLocaleTimeString()}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              try {
+                const res = await api.recoverStuckJobs();
+                if (res.recovered > 0) {
+                  toast.success(res.message);
+                } else {
+                  toast.info("No stuck jobs found");
+                }
+              } catch {
+                toast.error("Failed to recover jobs");
+              }
+            }}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            Recover Stuck Jobs
+          </button>
+          {lastChecked && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              Updated {lastChecked.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Summary pill */}
