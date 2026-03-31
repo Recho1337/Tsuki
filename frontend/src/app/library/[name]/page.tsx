@@ -161,22 +161,20 @@ export default function AnimeDetailPage() {
 
       {/* Inline video player */}
       {playingFile && (
-        <Card className="border-primary/30 overflow-hidden">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium truncate">
-                Now Playing: {playingFile.split("/").pop()}
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPlayingFile(null)}
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-              >
-                Close
-              </Button>
-            </div>
-          </CardHeader>
+        <Card id="video-player" className="border-primary/30 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-medium truncate mr-4">
+              Now Playing
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPlayingFile(null)}
+              className="shrink-0"
+            >
+              ✕ Close Player
+            </Button>
+          </div>
           <CardContent className="p-0">
             <video
               key={playingFile}
@@ -244,7 +242,12 @@ export default function AnimeDetailPage() {
                       </TableCell>
                       <TableCell className="text-right space-x-1">
                         <button
-                          onClick={() => setPlayingFile(getStreamUrl(file))}
+                          onClick={() => {
+                            setPlayingFile(getStreamUrl(file));
+                            setTimeout(() => {
+                              document.getElementById("video-player")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            }, 100);
+                          }}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-primary hover:bg-primary/10 transition-colors"
                         >
                           <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
