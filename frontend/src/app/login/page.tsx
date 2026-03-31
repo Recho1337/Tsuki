@@ -53,7 +53,7 @@ export default function LoginPage() {
       <Card className="relative w-full max-w-sm border-border bg-card/90 glass animate-in">
         <CardHeader className="text-center space-y-2 pb-2">
           <CardTitle className="text-xl font-semibold">
-            Anime<span className="text-primary">Kai</span>
+            月 <span className="text-primary">Tsuki</span>
           </CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
