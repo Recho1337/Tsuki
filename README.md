@@ -115,6 +115,7 @@ All configurable via `.env` file or `environment:` in docker-compose.
 | `POSTGRES_DB` | `tsuki` | Postgres database name |
 | `BACKEND_PORT` | `8001` | Host port for the backend API |
 | `FRONTEND_PORT` | `3000` | Host port for the frontend |
+| `NEXT_PUBLIC_API_URL` | `[none]` | Frontend API URL — set this to your domain (e.g. https://yourdomain.com) when running behind a reverse proxy
 
 ## Routing the Worker Through a VPN (Gluetun)
 
