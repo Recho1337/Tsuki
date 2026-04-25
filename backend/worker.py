@@ -97,6 +97,12 @@ def run_download(job_id: int):
             "max_workers": config.get("max_workers", 15),
         })
 
+        def _forward_log(level: str, msg: str):
+            nonlocal logs
+            logs = _log(job_id, level, msg, logs)
+
+        downloader.log_callback = _forward_log
+
         _update(job_id, status="fetching_info")
         logs = _log(job_id, "INFO", f"Fetching anime details from {config['anime_url']}", logs)
 

@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class AnimeDownloader:
     def __init__(self, config: Dict[str, Any] = None):
-        self.BASE_URL = "https://anikai.to"
+        self.BASE_URL = "https://animekai.to"
         self.scraper = cloudscraper.create_scraper(
             browser={"browser": "chrome", "platform": "windows", "desktop": True}
         )
